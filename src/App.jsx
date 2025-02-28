@@ -10,6 +10,7 @@ function App() {
   const [address, setAddress] = useState("");
   const [result, setResult] = useState("");
 
+  // Fungsi untuk mengecek apakah alamat scammer ada di database
   const checkScammer = async () => {
     const { data, error } = await supabase
       .from("scammers")
@@ -30,6 +31,20 @@ function App() {
     }
   };
 
+  // Fungsi untuk melaporkan scammer ke database
+  const reportScammer = async () => {
+    const { error } = await supabase
+      .from("scammers")
+      .insert([{ address, reported_at: new Date() }]);
+
+    if (error) {
+      console.error("Gagal melaporkan scammer:", error);
+      alert("Gagal melaporkan scammer.");
+    } else {
+      alert("✅ Scammer berhasil ditambahkan ke database!");
+    }
+  };
+
   return (
     <div style={{ textAlign: "center", padding: "20px" }}>
       <h1>Pengesanan Scammer</h1>
@@ -40,6 +55,9 @@ function App() {
         onChange={(e) => setAddress(e.target.value)}
       />
       <button onClick={checkScammer}>Periksa</button>
+      <button onClick={reportScammer} style={{ marginLeft: "10px" }}>
+        Laporkan Scammer
+      </button>
       <p>{result}</p>
     </div>
   );
