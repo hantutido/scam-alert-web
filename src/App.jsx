@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 
-// Gantilah dengan kredensial dari Supabase
-const supabaseUrl = "https://falntyygmtmgwgnyipcc.supabase.co"; // Ganti dengan URL dari Supabase
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhbG50eXlnbXRtZ3dnbnlpcGNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA3MzIxNzIsImV4cCI6MjA1NjMwODE3Mn0.VIMJIgWUuMTdNlgwy-0gkAexSUYQ3wHQePQBPp764ZM"; // Ganti dengan Anon Key dari Supabase
+// Ambil kredensial dari environment variable (.env)
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 function App() {
@@ -12,36 +12,49 @@ function App() {
 
   // Fungsi untuk mengecek apakah alamat scammer ada di database
   const checkScammer = async () => {
-    const { data, error } = await supabase
-      .from("scammers")
-      .select("*")
-      .eq("address", address)
-      .single();
-
-    if (error) {
-      console.error("Error fetching data:", error);
-      setResult("Terjadi kesalahan. Coba lagi.");
+    if (!address.trim()) {
+      setResult("⚠️ Masukkan alamat terlebih dahulu!");
       return;
     }
 
-    if (data) {
-      setResult("⚠️ Akun ini adalah SCAM!");
-    } else {
-      setResult("✅ Akun ini aman.");
+    try {
+      const { data, error } = await supabase
+        .from("scammers")
+        .select("*")
+        .eq("address", address)
+        .single();
+
+      if (error && error.code !== "PGRST116") {
+        console.error("Error fetching data:", error);
+        setResult("❌ Terjadi kesalahan saat memeriksa.");
+        return;
+      }
+
+      setResult(data ? "⚠️ Akun ini adalah SCAM!" : "✅ Akun ini aman.");
+    } catch (err) {
+      console.error("Unexpected error:", err);
+      setResult("❌ Terjadi kesalahan.");
     }
   };
 
   // Fungsi untuk melaporkan scammer ke database
   const reportScammer = async () => {
-    const { error } = await supabase
-      .from("scammers")
-      .insert([{ address, reported_at: new Date() }]);
+    if (!address.trim()) {
+      alert("⚠️ Masukkan alamat terlebih dahulu!");
+      return;
+    }
 
-    if (error) {
-      console.error("Gagal melaporkan scammer:", error);
-      alert("Gagal melaporkan scammer.");
-    } else {
-      alert("✅ Scammer berhasil ditambahkan ke database!");
+    try {
+      const { error } = await supabase
+        .from("scammers")
+        .insert([{ address, reported_at: new Date() }]);
+
+      if (error) throw error;
+
+      alert("✅ Scammer berhasil dilaporkan!");
+    } catch (err) {
+      console.error("Gagal melaporkan scammer:", err);
+      alert("❌ Gagal melaporkan scammer.");
     }
   };
 
